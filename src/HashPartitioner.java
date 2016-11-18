@@ -10,7 +10,8 @@ public class HashPartitioner<K, V> implements Partitioner<K, V> {
     // TODO: Perform Hash-partitioning
     HashMap<K, Integer> map = new HashMap<>();
     while (keyValues.hasNext()) {
-      map.put(keyValues.next().key, 0);
+      K key = keyValues.next().key;
+      map.put(key, key.hashCode()%3);
     }
     System.out.println(map);
     return map;
