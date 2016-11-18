@@ -7,6 +7,11 @@ public class ReduceTask implements Task<KV<String, Iterator<Integer>>, KV<String
    */
   @Override
   public KV<String, Integer> compute(KV<String, Iterator<Integer>> groupedValues) {
-    // TODO: Compute the sum of groupedValues
+    Iterator<Integer> it = groupedValues.value;
+    Integer i = 0;
+    while(it.hasNext()) {
+      i += it.next();
+    }
+    return new KV<String, Integer>(groupedValues.key, i);
   }
 }

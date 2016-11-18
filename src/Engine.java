@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,7 +23,7 @@ public class Engine {
 
   void runJob() throws InterruptedException {
     // Shuffle Configuration
-    final Shuffle<String, Integer> shuffle;
+    final Shuffle<String, Integer> shuffle = new Shuffle<>(new HashPartitioner<String, Integer>());
 
     // Map
     final CountDownLatch mapWait = new CountDownLatch(numMapTask);
@@ -30,7 +31,17 @@ public class Engine {
       final int index = i;
       executors.execute(() -> {
         // TODO: Read inputFile -> Execute Map Task -> Perform Shuffle Write
-        // try (final BufferedReader reader = new BufferedReader(new FileReader(inputDirectory+'/'+index))) {
+        MapTask mapper = new MapTask();
+        ArrayList<KV<String, Integer>> mapped = new ArrayList<>();
+        try (final BufferedReader reader = new BufferedReader(new FileReader(inputDirectory+'/'+index))) {
+          String line = null;
+          while ((line = reader.readLine()) != null) {
+            mapped.add(mapper.compute(line));
+          }
+        } catch (Exception e) {
+        }
+        System.out.println(mapped);
+        shuffle.write(mapped);
         mapWait.countDown();
       });
     }
@@ -42,7 +53,24 @@ public class Engine {
       final int index = i;
       executors.execute(() -> {
         // TODO: Perform Shuffle Read -> Execute Reduce Task -> Write outputFile
-        // try (final BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirectory + '/' + index))) {
+        Iterator<KV<String, Integer>> it = shuffle.read(index);
+        ReduceTask reducer = new ReduceTask();
+        HashMap<String, List<Integer>> map = new HashMap<>();
+        while(it != null && it.hasNext()) {
+          KV<String, Integer> kv = it.next();
+          List<Integer> list = map.get(kv.key);
+          if (list == null) list = new ArrayList<>();
+          list.add(kv.value);
+          map.put(kv.key, list);
+        }
+        System.out.println("EntrySEt:" + map.entrySet());
+
+        try (final BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirectory + '/' + index))) {
+          for (Map.Entry<String, List<Integer>> e : map.entrySet()) {
+            writer.write(reducer.compute(new KV<String, Iterator<Integer>>(e.getKey(), e.getValue().iterator())).toString() + "\n");
+          }
+        } catch (Exception e) {
+        }
         reduceWait.countDown();
       });
     }

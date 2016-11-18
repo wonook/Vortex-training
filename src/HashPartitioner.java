@@ -6,7 +6,13 @@ public class HashPartitioner<K, V> implements Partitioner<K, V> {
    * @return (destinationIndex -> iterator(key, value))
    */
   @Override
-  public Map<Integer, List<KV<K, V>>> partition(Iterator<KV<K, V>> keyValues) {
+  public Map<K, Integer> partition(Iterator<KV<K, V>> keyValues) {
     // TODO: Perform Hash-partitioning
+    HashMap<K, Integer> map = new HashMap<>();
+    while (keyValues.hasNext()) {
+      map.put(keyValues.next().key, 0);
+    }
+    System.out.println(map);
+    return map;
   }
 }
